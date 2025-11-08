@@ -5,6 +5,7 @@ import { CodeHighlight } from "@mantine/code-highlight";
 import type { NodeData } from "../../../types/graph";
 import useGraph from "../../editor/views/GraphView/stores/useGraph";
 import useJson from "../../../store/useJson";
+import useFile from "../../../store/useFile";
 
 // return object from json removing array and object fields
 const normalizeNodeData = (nodeRows: NodeData["text"]) => {
@@ -65,14 +66,16 @@ export const NodeModal = ({ opened, onClose }: ModalProps) => {
       if (editedData.name !== undefined) target.name = editedData.name;
       if (editedData.color !== undefined) target.color = editedData.color;
 
-      // Save back to JSON store and refresh the graph
+      // Save to both stores
       const newJson = JSON.stringify(jsonData, null, 2);
+      
+      // Update the text editor (left side)
+      useFile.getState().setContents({ contents: newJson, hasChanges: true, skipUpdate: true });
+      
+      // Update the JSON store and graph
       useJson.getState().setJson(newJson);
       
-      // Refresh the graph and wait for it to complete
-      useGraph.getState().setGraph(newJson);
-      
-      // Update the selected node data to reflect changes immediately
+      // Update the selected node data to reflect changes immediately in the modal
       setTimeout(() => {
         const updatedNode = useGraph.getState().nodes.find(n => n.id === nodeData.id);
         if (updatedNode) {
