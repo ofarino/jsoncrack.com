@@ -43,6 +43,7 @@ interface GraphActions {
   centerView: () => void;
   clearGraph: () => void;
   setZoomFactor: (zoomFactor: number) => void;
+  updateNodeText: (nodeId: string, newText: string) => void;
 }
 
 const useGraph = create<Graph & GraphActions>((set, get) => ({
@@ -66,6 +67,42 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
       aboveSupportedLimit: false,
       ...options,
     });
+  },
+  updateNodeText: (nodeId, newText) => {
+    try {
+      const currentJson = useJson.getState().json;
+      const jsonData = JSON.parse(currentJson);
+
+      const node = get().nodes.find(n => n.id === nodeId);
+      if (!node) {
+        console.error("Node not found:", nodeId);
+        return;
+      }
+
+      // Check if path exists and is a string
+      const nodePath = node.path || "";
+      if (!nodePath) {
+        console.error("Node has no path:", node);
+        return;
+      }
+
+      const pathSegments = nodePath.toString().split(".");
+      let target = jsonData;
+      
+      for (let i = 0; i < pathSegments.length - 1; i++) {
+        target = target[pathSegments[i]];
+        if (!target) {
+          console.error("Invalid path segment:", pathSegments[i]);
+          return;
+        }
+      }
+      const lastKey = pathSegments[pathSegments.length - 1];
+      target[lastKey] = newText;
+
+      useJson.getState().setJson(JSON.stringify(jsonData, null, 2));
+      } catch (error) {
+      console.error("Error updating node text:", error);
+    }
   },
   setDirection: (direction = "RIGHT") => {
     set({ direction });
